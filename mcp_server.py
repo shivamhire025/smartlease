@@ -245,4 +245,12 @@ def get_lease_field_guide() -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport="streamable-http")
+
+    port = int(os.environ.get("MCP_PORT", 8001))
+    mcp.run(
+        transport="streamable-http",
+        host="0.0.0.0",
+        port=port,
+        path="/mcp",
+    )
