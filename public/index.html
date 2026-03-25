@@ -606,6 +606,9 @@
           <span class="status-dot" aria-hidden="true"></span>
           <span class="status-text">Live</span>
         </div>
+        <button type="button" id="mcp-btn" onclick="document.getElementById('mcp-modal').style.display='flex'" style="height:32px;padding:0 12px;background:var(--green);color:white;border:none;border-radius:8px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;">
+          Connect to Claude
+        </button>
       </header>
 
       <div class="chat-scroll" id="chat-scroll">
@@ -938,5 +941,22 @@
     updateSendState();
     autoResizeTextarea();
   </script>
+
+  <div id="mcp-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+    <div style="background:white;border-radius:16px;padding:32px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+      <h2 style="margin:0 0 8px;font-size:18px;color:var(--text)">Connect Smartlease to Claude Desktop</h2>
+      <p style="margin:0 0 20px;font-size:14px;color:var(--text-muted);line-height:1.6">Add this to your <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:13px">claude_desktop_config.json</code> file:</p>
+      <pre id="mcp-config" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;overflow-x:auto;margin:0 0 12px">{
+  "mcpServers": {
+    "smartlease": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://smartlease-production.up.railway.app/mcp"]
+    }
+  }
+}</pre>
+      <button onclick="navigator.clipboard.writeText(document.getElementById('mcp-config').textContent);this.textContent='✓ Copied!';setTimeout(()=>this.textContent='Copy to Clipboard',2000)" style="width:100%;height:40px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;margin-bottom:12px">Copy to Clipboard</button>
+      <p style="margin:0;font-size:12px;color:var(--text-hint);line-height:1.6">📁 Mac: <code style="font-size:11px">~/Library/Application Support/Claude/claude_desktop_config.json</code><br>🪟 Windows: <code style="font-size:11px">%APPDATA%\Claude\claude_desktop_config.json</code><br>⚠️ Requires Node.js installed.</p>
+    </div>
+  </div>
 </body>
 </html>
