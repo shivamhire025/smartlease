@@ -1,0 +1,86 @@
+# Smartlease Project Context
+
+## What This Project Is
+Smartlease is an AI-powered Ontario real estate document 
+platform built with FastAPI (Python) + MCP server.
+It fills official government and OREA forms using an 
+AI agent powered by the Anthropic API.
+
+## Tech Stack
+- Backend: FastAPI + Python 3.12
+- AI: Anthropic API (claude-sonnet-4-6)
+- MCP: mcp[cli] package for MCP server
+- Frontend: Single HTML file (public/index.html)
+- Virtual environment: venv (activate with source venv/bin/activate)
+- Deploy target: Railway.app
+
+## File Structure
+smartlease/
+├── .env                  ← ANTHROPIC_API_KEY
+├── .cursorrules          ← this file
+├── requirements.txt      ← pip freeze output
+├── main.py               ← FastAPI app, /api/chat endpoint,
+│                            Anthropic agent with tools
+├── mcp_server.py         ← MCP server exposing form tools
+├── forms/
+│   ├── lease.py          ← fill_lease(data) → HTML string
+│   │                        Ontario Standard Lease Form 2229E
+│   └── purchase.py       ← fill_purchase(data) → HTML string
+│                            OREA Agreement of Purchase and Sale
+│                            Form 100
+└── public/
+    └── index.html        ← Split panel UI: left=chat, 
+                             right=document preview
+
+## Key Functions
+fill_lease(data: dict) -> str
+  in forms/lease.py
+  Takes landlord, tenant, property, rent, deposit data
+  Returns complete HTML of filled Form 2229E
+
+fill_purchase(data: dict) -> str  
+  in forms/purchase.py
+  Takes buyer, seller, property, price, brokerage data
+  Returns complete HTML of filled Form 100
+
+## API Endpoints (main.py)
+POST /api/chat
+  - Receives: {messages: [...], conversation_id: str}
+  - Calls Anthropic API with tools
+  - If tool called: executes fill_lease or fill_purchase
+  - Returns: {message: str, filled_document: str | null}
+
+GET /health
+  - Returns: {status: "ok"}
+
+## MCP Tools (mcp_server.py)
+Tool 1: fill_lease_agreement
+  - Fills Ontario Standard Lease (Form 2229E)
+  - Input: all lease fields as defined in forms/lease.py
+
+Tool 2: fill_purchase_and_sale
+  - Fills OREA Form 100
+  - Input: all purchase fields as defined in forms/purchase.py
+
+## Agent System Prompt (in main.py)
+The agent knows:
+- Which form to use for which scenario
+- All required fields for each form
+- To ask questions one at a time conversationally
+- To confirm before filling
+- To call the appropriate tool when ready
+
+## Color Scheme (index.html)
+Primary navy: #1B3A5C
+Accent green: #2E7D5E
+Background: #F7F8FA
+Surface: #FFFFFF
+Border: #DDE1E8
+
+## Important Rules
+- Always use python3.12 and the venv
+- Never hardcode the API key — always use .env
+- Forms return HTML strings, never PDF directly
+- Print to PDF is done via window.print() in browser
+- MCP server runs separately from main FastAPI server
+- Keep all form boilerplate text verbatim — never summarize

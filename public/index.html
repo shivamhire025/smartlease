@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smartlease — AI Real Estate Document Assistant</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root {
+      --navy: #1B3A5C;
+      --navy-dark: #15304D;
+      --green: #2E7D5E;
+      --green-light: #EAF4EF;
+      --bg: #F7F8FA;
+      --surface: #FFFFFF;
+      --border: #DDE1E8;
+      --text: #111827;
+      --text-muted: #4B5563;
+      --text-hint: #9CA3AF;
+      --error: #DC2626;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      display: flex;
+      height: 100vh;
+      min-height: 0;
+    }
+
+    .panel-left {
+      width: 420px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .panel-right {
+      flex: 1;
+      min-width: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .header-left {
+      height: 64px;
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .header-left-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--navy);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .app-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .brand-sep {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .tagline {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+
+    .status-live {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22C55E;
+    }
+
+    .status-text {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .chat-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: var(--bg);
+      min-height: 0;
+    }
+
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .welcome.hidden {
+      display: none;
+    }
+
+    .welcome-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--green-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: var(--green);
+      line-height: 1;
+    }
+
+    .welcome h2 {
+      margin: 16px 0 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .welcome p {
+      margin: 12px 0 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 280px;
+      line-height: 1.6;
+    }
+
+    .chips {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 320px;
+    }
+
+    .chip {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      background: var(--surface);
+      cursor: pointer;
+      margin: 4px;
+      font-family: inherit;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .chip:hover {
+      border-color: var(--navy);
+      color: var(--navy);
+    }
+
+    #messages-root {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .msg-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+
+    .msg-row.user {
+      justify-content: flex-end;
+    }
+
+    .msg-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-top: 2px;
+    }
+
+    .bubble-assistant {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px 16px 16px 16px;
+      padding: 12px 16px;
+      max-width: 85%;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .bubble-assistant strong {
+      font-weight: 600;
+    }
+
+    .bubble-assistant ul {
+      margin: 0.5em 0;
+      padding-left: 1.25em;
+    }
+
+    .bubble-user {
+      background: var(--navy);
+      color: white;
+      border-radius: 16px 4px 16px 16px;
+      padding: 12px 16px;
+      max-width: 85%;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .bubble-user strong {
+      font-weight: 600;
+      color: inherit;
+    }
+
+    .bubble-error {
+      border: 1px solid rgba(220, 38, 38, 0.35);
+      background: #FEF2F2;
+      color: var(--error);
+    }
+
+    .typing-bubble {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 12px 16px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-hint);
+      animation: typingPulse 1.2s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typingPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    .typing-extra {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: none;
+    }
+
+    .typing-extra.visible {
+      display: block;
+    }
+
+    .input-area {
+      border-top: 1px solid var(--border);
+      padding: 16px 20px;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+
+    #message-input {
+      flex: 1;
+      min-height: 44px;
+      max-height: 120px;
+      padding: 11px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 22px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      outline: none;
+      line-height: 1.5;
+      color: var(--text);
+      background: var(--bg);
+      overflow-y: auto;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+
+    #message-input::placeholder {
+      color: var(--text-hint);
+    }
+
+    #message-input:focus {
+      border-color: var(--navy);
+      background: var(--surface);
+      box-shadow: 0 0 0 3px rgba(27, 58, 92, 0.08);
+    }
+
+    #send-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: white;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, transform 0.15s;
+    }
+
+    #send-btn:hover:not(:disabled) {
+      background: var(--navy-dark);
+      transform: scale(1.05);
+    }
+
+    #send-btn:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    #send-btn:disabled {
+      background: var(--border);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .disclaimer {
+      font-size: 11px;
+      color: var(--text-hint);
+      text-align: center;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    .preview-header {
+      height: 64px;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .preview-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .preview-title-wrap .fa-regular {
+      color: var(--navy);
+      font-size: 15px;
+    }
+
+    .preview-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    #print-btn {
+      display: none;
+      height: 36px;
+      padding: 0 16px;
+      background: var(--navy);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+
+    #print-btn.visible {
+      display: flex;
+    }
+
+    #print-btn:hover {
+      background: var(--navy-dark);
+    }
+
+    .preview-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      min-height: 0;
+    }
+
+    .empty-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%;
+      text-align: center;
+    }
+
+    .empty-preview.hidden {
+      display: none;
+    }
+
+    .empty-illu {
+      width: 120px;
+      height: 120px;
+      background: var(--green-light);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      line-height: 1;
+    }
+
+    .empty-preview h2 {
+      margin: 20px 0 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .empty-preview p {
+      margin: 12px 0 0;
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 320px;
+      line-height: 1.6;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .pill {
+      background: var(--green-light);
+      color: var(--green);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    #document-container {
+      display: none;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    }
+
+    #document-container.visible {
+      display: block;
+      animation: documentFadeIn 300ms ease forwards;
+    }
+
+    @keyframes documentFadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 767px) {
+      .app {
+        flex-direction: column;
+      }
+
+      .panel-left {
+        width: 100%;
+        height: 50vh;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-right {
+        height: 50vh;
+      }
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      .print-area, .print-area * {
+        visibility: visible;
+      }
+      .print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="panel-left">
+      <header class="header-left">
+        <div class="header-left-brand">
+          <div class="logo-mark" aria-hidden="true">SL</div>
+          <span class="app-name">Smartlease</span>
+          <span class="brand-sep" aria-hidden="true"></span>
+          <span class="tagline">AI Document Assistant</span>
+        </div>
+        <div class="status-live" title="Service status">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-text">Live</span>
+        </div>
+      </header>
+
+      <div class="chat-scroll" id="chat-scroll">
+        <div class="welcome" id="welcome-state">
+          <div class="welcome-icon-wrap" aria-hidden="true">📄</div>
+          <h2>Welcome to Smartlease</h2>
+          <p>I can help you prepare official Ontario real estate documents. Just describe what you need in plain English.</p>
+          <div class="chips">
+            <button type="button" class="chip" data-chip>📋 Create a lease agreement</button>
+            <button type="button" class="chip" data-chip>🏠 Draft a purchase offer</button>
+            <button type="button" class="chip" data-chip>📄 What forms do you support?</button>
+          </div>
+        </div>
+        <div id="messages-root"></div>
+        <div class="msg-row typing-row" id="typing-indicator" style="display: none;">
+          <div class="msg-avatar" aria-hidden="true">SL</div>
+          <div>
+            <div class="bubble-assistant typing-wrap">
+              <div class="typing-bubble" aria-label="Smartlease is typing">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+              </div>
+              <div class="typing-extra" id="typing-slow-hint">Still working on your document...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-row">
+          <label for="message-input" class="visually-hidden">Message</label>
+          <textarea id="message-input" rows="1" placeholder="Message Smartlease..." autocomplete="off"></textarea>
+          <button type="button" id="send-btn" aria-label="Send message" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M2 12l10-10 10 10M12 2v20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+        <p class="disclaimer">Smartlease assists with document preparation. Always review with a qualified professional.</p>
+      </div>
+    </aside>
+
+    <main class="panel-right">
+      <header class="preview-header">
+        <div class="preview-title-wrap">
+          <i class="fa-regular fa-file-lines" aria-hidden="true"></i>
+          <span class="preview-title">Document Preview</span>
+        </div>
+        <button type="button" id="print-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          Print / Save PDF
+        </button>
+      </header>
+      <div class="preview-body" id="preview-body">
+        <div class="empty-preview" id="empty-preview">
+          <div class="empty-illu" aria-hidden="true">📄</div>
+          <h2>Your document will appear here</h2>
+          <p>Once you complete the conversation on the left, Smartlease will automatically generate your filled legal document ready to print or save as PDF.</p>
+          <div class="pills">
+            <span class="pill">✓ Legally compliant</span>
+            <span class="pill">✓ Official forms</span>
+            <span class="pill">✓ Print ready</span>
+          </div>
+        </div>
+        <div id="document-container"></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Change this to your Railway URL when deployed
+    const API_URL = "http://localhost:8000";
+
+    const messages = [];
+
+    const chatScroll = document.getElementById("chat-scroll");
+    const welcomeState = document.getElementById("welcome-state");
+    const messagesRoot = document.getElementById("messages-root");
+    const typingIndicator = document.getElementById("typing-indicator");
+    const typingSlowHint = document.getElementById("typing-slow-hint");
+    const messageInput = document.getElementById("message-input");
+    const sendBtn = document.getElementById("send-btn");
+    const emptyPreview = document.getElementById("empty-preview");
+    const documentContainer = document.getElementById("document-container");
+    const printBtn = document.getElementById("print-btn");
+    const previewBody = document.getElementById("preview-body");
+
+    let typingSlowTimeoutId = null;
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatMessage(text) {
+      const escaped = escapeHtml(text);
+      let withBold = escaped.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      const rawLines = withBold.split("\n");
+      let html = "";
+      let inList = false;
+
+      function closeList() {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+      }
+
+      for (let i = 0; i < rawLines.length; i++) {
+        const line = rawLines[i];
+        const bulletMatch = /^(\s*)[-•]\s+(.+)$/.exec(line);
+        if (bulletMatch) {
+          if (!inList) {
+            html += "<ul>";
+            inList = true;
+          }
+          html += "<li>" + bulletMatch[2] + "</li>";
+        } else {
+          closeList();
+          if (line === "") {
+            html += "<br />";
+          } else {
+            html += line + "<br />";
+          }
+        }
+      }
+      closeList();
+      return html;
+    }
+
+    function scrollChatToBottom() {
+      chatScroll.scrollTo({
+        top: chatScroll.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+
+    function updateSendState() {
+      sendBtn.disabled = messageInput.value.trim().length === 0;
+    }
+
+    function autoResizeTextarea() {
+      messageInput.style.height = "auto";
+      const max = 120;
+      const next = Math.min(messageInput.scrollHeight, max);
+      messageInput.style.height = next + "px";
+    }
+
+    function hideWelcome() {
+      welcomeState.classList.add("hidden");
+    }
+
+    function appendUserMessage(text) {
+      const row = document.createElement("div");
+      row.className = "msg-row user";
+      const bubble = document.createElement("div");
+      bubble.className = "bubble-user";
+      bubble.innerHTML = formatMessage(text);
+      row.appendChild(bubble);
+      messagesRoot.appendChild(row);
+    }
+
+    function appendAssistantMessage(text, opts) {
+      const isError = opts && opts.error;
+      const row = document.createElement("div");
+      row.className = "msg-row";
+      const avatar = document.createElement("div");
+      avatar.className = "msg-avatar";
+      avatar.textContent = "SL";
+      avatar.setAttribute("aria-hidden", "true");
+      const bubble = document.createElement("div");
+      bubble.className = "bubble-assistant" + (isError ? " bubble-error" : "");
+      bubble.innerHTML = formatMessage(text);
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      messagesRoot.appendChild(row);
+    }
+
+    function showTyping() {
+      typingSlowHint.classList.remove("visible");
+      typingIndicator.style.display = "flex";
+      clearTimeout(typingSlowTimeoutId);
+      typingSlowTimeoutId = setTimeout(function () {
+        typingSlowHint.classList.add("visible");
+      }, 8000);
+      scrollChatToBottom();
+    }
+
+    function hideTyping() {
+      typingIndicator.style.display = "none";
+      typingSlowHint.classList.remove("visible");
+      clearTimeout(typingSlowTimeoutId);
+      typingSlowTimeoutId = null;
+    }
+
+    function isConnectionError(err) {
+      if (!err) return false;
+      const msg = String(err.message || err);
+      return (
+        err instanceof TypeError ||
+        msg.includes("Failed to fetch") ||
+        msg.includes("NetworkError") ||
+        msg.includes("Load failed")
+      );
+    }
+
+    async function sendMessage() {
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      messageInput.value = "";
+      autoResizeTextarea();
+      sendBtn.disabled = true;
+
+      hideWelcome();
+      appendUserMessage(text);
+      messages.push({ role: "user", content: text });
+      scrollChatToBottom();
+
+      showTyping();
+
+      try {
+        const res = await fetch(API_URL + "/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages: messages }),
+        });
+
+        hideTyping();
+
+        if (!res.ok) {
+          appendAssistantMessage(
+            "Sorry, something went wrong. Please try again.",
+            { error: true }
+          );
+          messages.push({
+            role: "assistant",
+            content: "Sorry, something went wrong. Please try again.",
+          });
+          scrollChatToBottom();
+          updateSendState();
+          return;
+        }
+
+        const response = await res.json();
+        const assistantText = response.message || "";
+        appendAssistantMessage(assistantText);
+        messages.push({ role: "assistant", content: assistantText });
+        scrollChatToBottom();
+
+        if (response.filled_document != null && response.filled_document !== "") {
+          emptyPreview.classList.add("hidden");
+          documentContainer.classList.remove("visible");
+          void documentContainer.offsetWidth;
+          documentContainer.innerHTML = response.filled_document;
+          documentContainer.classList.add("visible");
+          printBtn.classList.add("visible");
+          previewBody.scrollTop = 0;
+
+          const readyMsg =
+            "✅ Your document is ready! You can review it on the right and use the 'Print / Save PDF' button to download it.";
+          appendAssistantMessage(readyMsg);
+          messages.push({ role: "assistant", content: readyMsg });
+          scrollChatToBottom();
+        }
+      } catch (e) {
+        hideTyping();
+        const conn = isConnectionError(e);
+        appendAssistantMessage(
+          conn
+            ? "Unable to connect to Smartlease. Please make sure the server is running."
+            : "Sorry, something went wrong. Please try again.",
+          { error: true }
+        );
+        messages.push({
+          role: "assistant",
+          content: conn
+            ? "Unable to connect to Smartlease. Please make sure the server is running."
+            : "Sorry, something went wrong. Please try again.",
+        });
+        scrollChatToBottom();
+      }
+
+      updateSendState();
+    }
+
+    messageInput.addEventListener("input", function () {
+      autoResizeTextarea();
+      updateSendState();
+    });
+
+    messageInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (!sendBtn.disabled) sendMessage();
+      }
+    });
+
+    sendBtn.addEventListener("click", sendMessage);
+
+    document.querySelectorAll("[data-chip]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        messageInput.value = btn.textContent.trim();
+        autoResizeTextarea();
+        updateSendState();
+        sendMessage();
+      });
+    });
+
+    printBtn.addEventListener("click", function () {
+      const html = documentContainer.innerHTML;
+      const w = window.open("", "_blank");
+      if (!w) return;
+      const doc = w.document;
+      doc.open();
+      doc.write("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Smartlease — Document</title>");
+      doc.write("<style>body{margin:0;padding:16px;font-family:Inter,system-ui,sans-serif}@media print{body{padding:0}}</style>");
+      doc.write("</head><body><div class=\"print-area\">");
+      doc.write(html);
+      doc.write("</div></body></html>");
+      doc.close();
+      w.focus();
+      w.print();
+    });
+
+    updateSendState();
+    autoResizeTextarea();
+  </script>
+</body>
+</html>
