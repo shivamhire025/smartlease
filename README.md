@@ -4,8 +4,11 @@
 
 **[Live Demo](https://web-production-3cb6e.up.railway.app)** · **[GitHub](https://github.com/shivamhire025/smartlease)**
 
+**Welcome Screen with Claude Connector Button**
 <img width="1470" height="721" alt="Screenshot 2026-03-25 at 2 41 29 PM" src="https://github.com/user-attachments/assets/311e3931-6e0c-4cac-9ac6-120bd60edff4" />
 
+**Document Generated After Conversation**
+<img width="1419" height="700" alt="Screenshot 2026-03-25 at 2 44 24 PM" src="https://github.com/user-attachments/assets/c3ee4c75-6668-4801-ba69-7802ee9af739" />
 
 ---
 
