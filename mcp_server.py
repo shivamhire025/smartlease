@@ -5,6 +5,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from forms.lease import fill_lease
 
 mcp = FastMCP(
     "smartlease",
