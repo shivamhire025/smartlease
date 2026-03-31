@@ -5,8 +5,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import anthropic
 import os
+import base64
 from dotenv import load_dotenv
-from forms.lease import fill_lease
+from forms.lease import fill_lease, fill_lease_pdf
 
 load_dotenv()
 
@@ -291,11 +292,13 @@ async def chat(request: ChatRequest):
         )
 
         filled_document: str | None = None
+        filled_document_pdf: str | None = None
 
         if response.stop_reason != "tool_use":
             return {
                 "message": _extract_text_from_response(response),
                 "filled_document": None,
+                "filled_document_pdf": None,
                 "role": "assistant",
             }
 
@@ -309,12 +312,25 @@ async def chat(request: ChatRequest):
                 continue
             if block.name == "fill_lease_agreement":
                 tool_input = dict(block.input)
-                filled_document = fill_lease(tool_input)
+                try:
+                    pdf_bytes = fill_lease_pdf(tool_input)
+                    print(f"PDF bytes length: {len(pdf_bytes) if pdf_bytes else 'None'}")
+                    filled_document_pdf = base64.b64encode(pdf_bytes).decode("ascii")
+                    tool_result_content = (
+                        "Ontario Standard Lease PDF generated successfully."
+                    )
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    print(f"PDF fill error: {e}")
+                    filled_document = fill_lease(tool_input)
+                    tool_result_content = "PDF generation failed; HTML lease generated."
+                
                 tool_result_blocks.append(
                     {
                         "type": "tool_result",
                         "tool_use_id": block.id,
-                        "content": filled_document,
+                        "content": tool_result_content,
                     }
                 )
             else:
@@ -345,6 +361,7 @@ async def chat(request: ChatRequest):
         return {
             "message": _extract_text_from_response(final_response),
             "filled_document": filled_document,
+            "filled_document_pdf": filled_document_pdf,
             "role": "assistant",
         }
     except Exception as e:

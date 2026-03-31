@@ -863,7 +863,17 @@
         messages.push({ role: "assistant", content: assistantText });
         scrollChatToBottom();
 
-        if (response.filled_document != null && response.filled_document !== "") {
+        if (response.filled_document_pdf != null && response.filled_document_pdf !== "") {
+          emptyPreview.classList.add("hidden");
+          documentContainer.classList.remove("visible");
+          void documentContainer.offsetWidth;
+          const pdfBlob = new Blob([Uint8Array.from(atob(response.filled_document_pdf), c => c.charCodeAt(0))], {type: "application/pdf"});
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+          documentContainer.innerHTML = `<iframe src="${pdfUrl}" style="width:100%;height:80vh;border:none;"></iframe>`;
+          documentContainer.classList.add("visible");
+          printBtn.classList.add("visible");
+          previewBody.scrollTop = 0;
+        } else if (response.filled_document != null && response.filled_document !== "") {
           emptyPreview.classList.add("hidden");
           documentContainer.classList.remove("visible");
           void documentContainer.offsetWidth;
@@ -932,7 +942,7 @@
       doc.write("<style>body{margin:0;padding:16px;font-family:Inter,system-ui,sans-serif}@media print{body{padding:0}}</style>");
       doc.write("</head><body><div class=\"print-area\">");
       doc.write(html);
-      doc.write("</div></body></html>");
+      doc.write("</div></" + "body></html>");
       doc.close();
       w.focus();
       w.print();
@@ -943,19 +953,27 @@
   </script>
 
   <div id="mcp-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
-    <div style="background:white;border-radius:16px;padding:32px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
-      <h2 style="margin:0 0 8px;font-size:18px;color:var(--text)">Connect Smartlease to Claude Desktop</h2>
-      <p style="margin:0 0 20px;font-size:14px;color:var(--text-muted);line-height:1.6">Add this to your <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:13px">claude_desktop_config.json</code> file:</p>
-      <pre id="mcp-config" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:13px;overflow-x:auto;margin:0 0 12px">{
-  "mcpServers": {
-    "smartlease": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://smartlease-production.up.railway.app/mcp"]
-    }
-  }
-}</pre>
-      <button onclick="navigator.clipboard.writeText(document.getElementById('mcp-config').textContent);this.textContent='✓ Copied!';setTimeout(()=>this.textContent='Copy to Clipboard',2000)" style="width:100%;height:40px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;margin-bottom:12px">Copy to Clipboard</button>
-      <p style="margin:0;font-size:12px;color:var(--text-hint);line-height:1.6">📁 Mac: <code style="font-size:11px">~/Library/Application Support/Claude/claude_desktop_config.json</code><br>🪟 Windows: <code style="font-size:11px">%APPDATA%\Claude\claude_desktop_config.json</code><br>⚠️ Requires Node.js installed.</p>
+    <div style="background:white;border-radius:16px;padding:32px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+      <h2 style="margin:0 0 8px;font-size:18px;color:var(--text)">Connect Smartlease to Claude</h2>
+      <p style="margin:0 0 24px;font-size:14px;color:var(--text-muted);line-height:1.6">Add Smartlease as a connector in Claude.ai - no file editing or terminal required.</p>
+
+      <ol style="margin:0 0 20px;padding-left:20px;font-size:14px;color:var(--text-muted);line-height:2.2;">
+        <li>Go to <strong>claude.ai > Settings > Connectors</strong></li>
+        <li>Click <strong>"Add custom connector"</strong></li>
+        <li>Enter <strong>Smartlease</strong> as the name</li>
+        <li>Paste the URL below and click <strong>Add</strong></li>
+        <li>Don't forget to give your AI companion access to Smartlease tools in the connector setup.</li>
+      </ol>
+
+      <div id="mcp-url" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;font-family:monospace;word-break:break-all;margin-bottom:12px;">https://smartlease-production.up.railway.app/mcp</div>
+
+      <button onclick="navigator.clipboard.writeText(document.getElementById('mcp-url').textContent.trim());this.textContent='✓ Copied!';setTimeout(()=>this.textContent='Copy URL',2000)" style="width:100%;height:42px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;margin-bottom:20px;">Copy URL</button>
+
+      <p style="margin:0;font-size:12px;color:var(--text-hint);line-height:1.8;">
+        ✅ Works on Claude.ai (free &amp; paid plans)<br/>
+        ✅ No Node.js or terminal required<br/>
+        ✅ Also compatible with ChatGPT and n8n
+      </p>
     </div>
   </div>
 </body>

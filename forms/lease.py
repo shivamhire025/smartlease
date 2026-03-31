@@ -1,5 +1,238 @@
+from io import BytesIO
+from pathlib import Path
+import os
+from pypdf import PdfReader, PdfWriter
+from pypdf.generic import BooleanObject, NameObject
+
 # Ontario Standard Form of Lease — Form 2229E (2020/12) HTML generator
 
+PDF_PATH = os.path.join(
+    os.path.dirname(__file__), "2229e.pdf"
+)
+
+
+
+def fill_lease_pdf(data: dict) -> bytes:
+    """Fill Ontario Form 2229E PDF and return bytes."""
+
+    def g(key, default=""):
+        value = data.get(key, default)
+        if value is None:
+            return default
+        return value
+
+    def s(value) -> str:
+        if value is None:
+            return ""
+        return str(value)
+
+    def boolish(value) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value != 0
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+        return bool(value)
+
+    def set_checkbox(fields: dict, yes_field: str, no_field: str, state: bool):
+        fields[yes_field] = "/1" if state else "/Off"
+        fields[no_field] = "/Off" if state else "/2"
+
+    fields: dict[str, str] = {}
+
+    # Section 1
+    fields["form1[0].page1[0].body[0].section1[0].landlord[0].instructorInfo[0].instructorName[0].instrName[0]"] = s(g("landlord_name"))
+
+    tenants = g("tenants") or []
+    if not isinstance(tenants, list):
+        tenants = []
+    for idx in range(4):
+        tenant = tenants[idx] if idx < len(tenants) and isinstance(tenants[idx], dict) else {}
+        fields[f"form1[0].page1[0].body[0].section1[0].tenantsnames[0].tenant[{idx}].instructorInfo[0].instructorName[0].instrName[0]"] = s(tenant.get("last_name", ""))
+        fields[f"form1[0].page1[0].body[0].section1[0].tenantsnames[0].tenant[{idx}].instructorInfo[0].instructorName[0].evalName[0]"] = s(tenant.get("first_name", ""))
+
+    # Section 2
+    fields["form1[0].page1[0].body[0].section2[0].busUnitNo[0]"] = s(g("unit"))
+    fields["form1[0].page1[0].body[0].section2[0].busStreetNo[0]"] = s(g("street_number"))
+    fields["form1[0].page1[0].body[0].section2[0].busStreetName[0]"] = s(g("street_name"))
+    fields["form1[0].page1[0].body[0].section2[0].busCity[0]"] = s(g("city"))
+    fields["form1[0].page1[0].body[0].section2[0].province[0]"] = s(g("province", "Ontario"))
+    fields["form1[0].page1[0].body[0].section2[0].busPostalCode[0]"] = s(g("postal_code"))
+    fields["form1[0].page1[0].body[0].section2[0].vehicle[0]"] = s(g("parking_description"))
+    set_checkbox(
+        fields,
+        "form1[0].page1[0].body[0].section2[0].#subform[0].yes[0]",
+        "form1[0].page1[0].body[0].section2[0].#subform[0].no[0]",
+        boolish(g("is_condo", False)),
+    )
+
+    # Section 3
+    fields["form1[0].page1[0].body[0].section3[0].unitNo[0]"] = s(g("landlord_unit"))
+    fields["form1[0].page1[0].body[0].section3[0].streetNo[0]"] = s(g("landlord_street_number"))
+    fields["form1[0].page1[0].body[0].section3[0].streetName[0]"] = s(g("landlord_street_name"))
+    fields["form1[0].page1[0].body[0].section3[0].unitNo[1]"] = s(g("landlord_po_box"))
+    fields["form1[0].page1[0].body[0].section3[0].city[0]"] = s(g("landlord_city"))
+    fields["form1[0].page1[0].body[0].section3[0].province[0]"] = s(g("landlord_province", "Ontario"))
+    fields["form1[0].page1[0].body[0].section3[0].postalCode[0]"] = s(g("landlord_postal_code"))
+    set_checkbox(
+        fields,
+        "form1[0].page1[0].body[0].section3[0].question1[0].yes[0]",
+        "form1[0].page1[0].body[0].section3[0].question1[0].no[0]",
+        boolish(g("email_notices_agreed", False)),
+    )
+    email_values = [s(g("landlord_email"))]
+    for tenant in tenants:
+        if isinstance(tenant, dict):
+            email_values.append(s(tenant.get("email", "")))
+    fields["form1[0].page1[0].body[0].section3[0].question1[0].email[0]"] = ", ".join(
+        [email for email in email_values if email]
+    )
+    set_checkbox(
+        fields,
+        "form1[0].page1[0].body[0].section3[0].question2[0].yes[0]",
+        "form1[0].page1[0].body[0].section3[0].question2[0].no[0]",
+        boolish(g("emergency_contact_provided", False)),
+    )
+    emergency_parts = [s(g("landlord_phone")), s(g("emergency_contact_info"))]
+    fields["form1[0].page1[0].body[0].section3[0].question2[0].comment[0]"] = " | ".join([p for p in emergency_parts if p])
+
+    # Section 4
+    fields["form1[0].page1[0].body[0].section4[0].question1[0].date[0]"] = s(g("start_date"))
+    tenancy_type = s(g("tenancy_type")).lower()
+    fields["form1[0].page1[0].body[0].section4[0].question2[0].choice1[0]"] = "/1" if tenancy_type == "fixed" else "/Off"
+    fields["form1[0].page1[0].body[0].section4[0].question2[0].choice2[0]"] = "/2" if tenancy_type == "monthly" else "/Off"
+    fields["form1[0].page1[0].body[0].section4[0].question2[0].choice3[0]"] = "/3" if tenancy_type == "other" else "/Off"
+    fields["form1[0].page1[0].body[0].section4[0].question2[0].date[0]"] = s(g("end_date"))
+    fields["form1[0].page1[0].body[0].section4[0].question2[0].specify[0]"] = s(g("other_tenancy_description"))
+
+    # Section 5
+    fields["form1[0].page1[0].body[0].section5[0].text[0]"] = s(g("rent_payment_day"))
+    rent_frequency = s(g("rent_frequency", "monthly")).lower()
+    fields["form1[0].page1[0].body[0].section5[0].month[0]"] = "/1" if rent_frequency == "monthly" else "/Off"
+    fields["form1[0].page1[0].body[0].section5[0].other[0]"] = "/2" if rent_frequency == "other" else "/Off"
+    fields["form1[0].page1[0].body[0].section5[0].specify[0]"] = s(g("rent_frequency_other"))
+    fields["form1[0].page1[0].body[0].section5[0].Table1[0].Row1[0].cost[0]"] = s(g("base_rent"))
+    fields["form1[0].page1[0].body[0].section5[0].Table1[0].Row2[0].cost[0]"] = s(g("parking_rent"))
+
+    extra_services = g("extra_services") or []
+    if not isinstance(extra_services, list):
+        extra_services = []
+    for idx in range(3):
+        extra = extra_services[idx] if idx < len(extra_services) and isinstance(extra_services[idx], dict) else {}
+        fields[f"form1[0].page1[0].body[0].section5[0].Table1[0].Row4[{idx}].specify[0]"] = s(extra.get("label", ""))
+        fields[f"form1[0].page1[0].body[0].section5[0].Table1[0].Row4[{idx}].cost[0]"] = s(extra.get("amount", ""))
+
+    fields["form1[0].page1[0].body[0].section5[0].Table1[0].Row6[0].totalcost[0]"] = s(g("total_rent"))
+    fields["form1[0].page1[0].body[0].section5[0].#subform[2].questionc[0]"] = s(g("rent_payable_to"))
+    fields["form1[0].page1[0].body[0].section5[0].#subform[3].questiond[0]"] = s(g("payment_method"))
+    fields["form1[0].page1[0].body[0].section5[0].questione[0].day[0]"] = s(g("partial_amount"))
+    fields["form1[0].page1[0].body[0].section5[0].questione[0].date[0]"] = s(g("partial_payment_date"))
+    fields["form1[0].page1[0].body[0].section5[0].questione[0].RWFrom[0]"] = s(g("partial_from_date"))
+    fields["form1[0].page1[0].body[0].section5[0].questione[0].RWTO[0]"] = s(g("partial_to_date"))
+    fields["form1[0].page1[0].body[0].section5[0].questionf[0].day[0]"] = s(g("nsf_charge"))
+
+    # Section 6
+    set_checkbox(fields, "form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].yes[0]", "form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].no[0]", boolish(g("gas_included", False)))
+    set_checkbox(fields, "form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].yes[1]", "form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].no[1]", boolish(g("ac_included", False)))
+    set_checkbox(fields, "form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].yes[2]", "form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].no[2]", boolish(g("storage_included", False)))
+
+    laundry = s(g("laundry", "no")).lower()
+    fields["form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].yes[3]"] = "/1" if laundry in {"yes", "no_charge", "pay_per_use"} else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].no[3]"] = "/2" if laundry == "no" else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].charge1[0]"] = "/1" if laundry == "no_charge" else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].payperuse1[0]"] = "/2" if laundry == "pay_per_use" else "/Off"
+
+    guest_parking = s(g("guest_parking", "no")).lower()
+    fields["form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].yes[4]"] = "/1" if guest_parking in {"yes", "no_charge", "pay_per_use"} else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].no[4]"] = "/2" if guest_parking == "no" else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].charge2[0]"] = "/1" if guest_parking == "no_charge" else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].payperuse2[0]"] = "/2" if guest_parking == "pay_per_use" else "/Off"
+
+    other_services = g("other_services") or []
+    if not isinstance(other_services, list):
+        other_services = []
+    for idx in range(3):
+        service = other_services[idx] if idx < len(other_services) and isinstance(other_services[idx], dict) else {}
+        included = boolish(service.get("included", False))
+        fields[f"form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].other[{idx}].specify[0]"] = s(service.get("label", ""))
+        fields[f"form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].other[{idx}].yes[0]"] = "/1" if included else "/Off"
+        fields[f"form1[0].page1[0].body[0].section6[0].suggestions[0].service[0].other[{idx}].no[0]"] = "/2" if not included else "/Off"
+
+    fields["form1[0].page1[0].body[0].section6[0].comment[0]"] = s(g("service_details"))
+
+    electricity = s(g("electricity_responsibility", "tenant")).lower()
+    heat = s(g("heat_responsibility", "landlord")).lower()
+    water = s(g("water_responsibility", "tenant")).lower()
+    fields["form1[0].page1[0].body[0].section6[0].utilities[0].Landlord[0]"] = "/1" if electricity == "landlord" else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].utilities[0].tenant[0]"] = "/2" if electricity == "tenant" else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].utilities[0].Landlord[1]"] = "/1" if heat == "landlord" else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].utilities[0].tenant[1]"] = "/2" if heat == "tenant" else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].utilities[0].Landlord[2]"] = "/1" if water == "landlord" else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].utilities[0].tenant[2]"] = "/2" if water == "tenant" else "/Off"
+    fields["form1[0].page1[0].body[0].section6[0].comment2[0]"] = s(g("utility_details"))
+
+    # Section 7-11
+    has_discount = boolish(g("has_rent_discount", False))
+    fields["form1[0].page1[0].body[0].section7[0].question2[0].yes[0]"] = "/Off" if has_discount else "/1"
+    fields["form1[0].page1[0].body[0].section7[0].question2[0].c[0]"] = "/2" if has_discount else "/Off"
+    fields["form1[0].page1[0].body[0].section7[0].comment[0]"] = s(g("rent_discount_description"))
+
+    rent_deposit = g("rent_deposit", 0)
+    has_rent_deposit = boolish(rent_deposit)
+    fields["form1[0].page1[0].body[0].section8[0].question2[0].yes[0]"] = "/Off" if has_rent_deposit else "/1"
+    fields["form1[0].page1[0].body[0].section8[0].question2[0].c[0]"] = "/2" if has_rent_deposit else "/Off"
+    fields["form1[0].page1[0].body[0].section8[0].question2[0].deposit[0]"] = s(rent_deposit)
+
+    key_deposit = g("key_deposit", 0)
+    has_key_deposit = boolish(key_deposit)
+    fields["form1[0].page1[0].body[0].section9[0].question2[0].yes[0]"] = "/Off" if has_key_deposit else "/1"
+    fields["form1[0].page1[0].body[0].section9[0].question2[0].c[0]"] = "/2" if has_key_deposit else "/Off"
+    fields["form1[0].page1[0].body[0].section9[0].question2[0].deposit[0]"] = s(key_deposit)
+    fields["form1[0].page1[0].body[0].section9[0].comment[0]"] = s(g("key_deposit_description"))
+
+    smoking_rules = s(g("smoking_rules", "none"))
+    smoking_none = smoking_rules.strip().lower() == "none"
+    fields["form1[0].page1[0].body[0].section10[0].question2[0].None[0]"] = "/1" if smoking_none else "/Off"
+    fields["form1[0].page1[0].body[0].section10[0].question2[0].Smokingrules[0]"] = "/2" if not smoking_none else "/Off"
+    fields["form1[0].page1[0].body[0].section10[0].comment[0]"] = "" if smoking_none else smoking_rules
+
+    insurance_required = boolish(g("insurance_required", False))
+    fields["form1[0].page1[0].body[0].section11[0].question2[0].choice1[0]"] = "/Off" if insurance_required else "/1"
+    fields["form1[0].page1[0].body[0].section11[0].question2[0].choice2[0]"] = "/2" if insurance_required else "/Off"
+
+    # Section 15
+    additional_terms = g("additional_terms") or []
+    if not isinstance(additional_terms, list):
+        additional_terms = []
+    has_additional_terms = len(additional_terms) > 0
+    fields["form1[0].page1[0].body[0].section15[0].choice1[0]"] = "/Off" if has_additional_terms else "/1"
+    fields["form1[0].page1[0].body[0].section15[0].choice1[1]"] = "/2" if has_additional_terms else "/Off"
+
+    # Section 17 signatures
+    fields["form1[0].page1[0].body[0].section17[0].landlords[0].signature1[0].name[0]"] = s(g("landlord_name"))
+    for idx in range(2):
+        tenant = tenants[idx] if idx < len(tenants) and isinstance(tenants[idx], dict) else {}
+        full_name = (f"{tenant.get('first_name', '')} {tenant.get('last_name', '')}").strip()
+        fields[f"form1[0].page1[0].body[0].section17[0].tenants[0].signature{idx + 1}[0].name[0]"] = full_name
+
+    reader = PdfReader(PDF_PATH)
+    writer = PdfWriter(clone_from=reader)
+
+    for page in writer.pages:
+        writer.update_page_form_field_values(page, fields)
+
+    if reader.trailer.get("/Root") and reader.trailer["/Root"].get("/AcroForm"):
+        writer._root_object["/AcroForm"].update(
+            {
+                "/NeedAppearances": BooleanObject(True)
+            }
+        )
+
+    out = BytesIO()
+    writer.write(out)
+    out.seek(0)
+    return out.read()
 
 def fill_lease(data: dict) -> str:
     """Return a complete HTML document for Ontario's Standard Form of Lease with fields filled from ``data``."""
