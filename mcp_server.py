@@ -1,11 +1,19 @@
 import json
 import sys
 import os
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
-from forms.lease import fill_lease
+from forms.lease import fill_lease_pdf
+from forms.purchase import fill_purchase_pdf
+from forms.mutual_release import fill_mutual_release_pdf
+from forms.waiver import fill_waiver_pdf
+from forms.notice_fulfillment import fill_notice_fulfillment_pdf
+from forms.listing_agreement import fill_listing_agreement_pdf
+from forms.buyer_representation import fill_buyer_representation_pdf
+from forms.confirmation_cooperation import fill_confirmation_cooperation_pdf
 
 mcp = FastMCP(
     "smartlease",
@@ -79,8 +87,7 @@ def fill_lease_agreement(
 ) -> dict:
     """
     Fill an Ontario Standard Residential Lease Agreement
-    (Form 2229E) with the provided data and return the
-    complete filled document as HTML.
+    (Form 2229E) and return a path to the filled PDF.
 
     Use this tool when a user wants to create a lease
     agreement for a residential property in Ontario, Canada.
@@ -155,12 +162,17 @@ def fill_lease_agreement(
             "tenants": tenants,
         }
 
-        html = fill_lease(data)
+        pdf_bytes = fill_lease_pdf(data)
+        with tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".pdf", delete=False
+        ) as tmp_pdf:
+            tmp_pdf.write(pdf_bytes)
+            pdf_path = tmp_pdf.name
 
         return {
             "success": True,
-            "document_html": html,
-            "message": "Lease agreement successfully generated. The document contains all sections of Ontario Form 2229E filled with the provided information.",
+            "document_pdf_path": pdf_path,
+            "message": "Lease agreement PDF successfully generated.",
             "form": "Ontario Standard Lease - Form 2229E",
             "landlord": landlord_name,
             "property": f"{unit} {street_number} {street_name}, {city}",
@@ -203,12 +215,692 @@ def get_supported_forms() -> dict:
                 "description": "Standard offer to purchase residential real property in Ontario",
                 "use_case": "Buyer making an offer to purchase a residential property",
                 "tool": "fill_purchase_and_sale",
-                "status": "coming_soon",
+            },
+            {
+                "id": "mutual_release_122",
+                "name": "Mutual Release",
+                "form_number": "OREA Form 122",
+                "description": "Mutual release between buyer and seller for an agreement of purchase and sale",
+                "use_case": "Buyer and seller mutually releasing each other from APS obligations",
+                "tool": "fill_mutual_release",
+            },
+            {
+                "id": "waiver_123",
+                "name": "Waiver",
+                "form_number": "OREA Form 123",
+                "description": "Waiver of conditions in an agreement of purchase and sale",
+                "use_case": "Buyer and/or seller waiving one or more conditions",
+                "tool": "fill_waiver",
+            },
+            {
+                "id": "notice_fulfillment_124",
+                "name": "Notice of Fulfillment of Condition(s)",
+                "form_number": "OREA Form 124",
+                "description": "Notice confirming fulfillment of one or more conditions in an agreement of purchase and sale",
+                "use_case": "Buyer and/or seller confirming conditions have been fulfilled",
+                "tool": "fill_notice_fulfillment",
+            },
+            {
+                "id": "listing_agreement_200",
+                "name": "Listing Agreement",
+                "form_number": "OREA Form 200",
+                "description": "Listing agreement between seller and listing brokerage for sale of property",
+                "use_case": "Seller engaging a brokerage to list and market a property",
+                "tool": "fill_listing_agreement",
+            },
+            {
+                "id": "buyer_representation_300",
+                "name": "Buyer Representation Agreement",
+                "form_number": "OREA Form 300",
+                "description": "Agreement appointing a brokerage to represent the buyer in finding and purchasing/leasing property",
+                "use_case": "Buyer engaging a brokerage for representation services",
+                "tool": "fill_buyer_representation",
+            },
+            {
+                "id": "confirmation_cooperation_320",
+                "name": "Confirmation of Co-operation and Representation",
+                "form_number": "OREA Form 320",
+                "description": "Confirmation of brokerage cooperation and representation relationships in a trade",
+                "use_case": "Buyer/seller and cooperating brokerages acknowledging representation and commission arrangements",
+                "tool": "fill_confirmation_cooperation",
             },
         ],
-        "total_supported": 1,
-        "coming_soon": 1,
+        "total_supported": 8,
+        "coming_soon": 0,
     }
+
+
+@mcp.tool()
+def fill_purchase_and_sale(
+    street_number: str,
+    street_name: str,
+    unit: str,
+    city: str,
+    postal_code: str,
+    frontage: str,
+    side_of_street: str,
+    municipality: str,
+    depth: str,
+    legal_description: str,
+    buyer_1_name: str,
+    buyer_2_name: str,
+    seller_1_name: str,
+    seller_2_name: str,
+    purchase_price: str,
+    purchase_price_words: str,
+    deposit_words: str,
+    deposit_amount: str,
+    deposit_holder: str,
+    offer_date: str,
+    irrevocability_date: str,
+    irrevocability_time: str,
+    completion_date: str,
+    requisition_date: str,
+    chattels_included: str,
+    fixtures_excluded: str,
+    rental_items: str,
+    schedule_a_content: str,
+    present_use: str,
+    hst_treatment: str,
+    buyer_address: str,
+    buyer_phone: str,
+    seller_address: str,
+    seller_phone: str,
+    listing_brokerage: str,
+    listing_brokerage_phone: str,
+    listing_agent: str,
+    coop_brokerage: str,
+    coop_brokerage_phone: str,
+    coop_agent: str,
+    province: str = "Ontario",
+    schedules: str = "A",
+) -> dict:
+    """
+    Fill OREA Agreement of Purchase and Sale
+    (Form 100) and return a path to the filled PDF.
+    """
+    try:
+        data = {
+            "street_number": street_number,
+            "street_name": street_name,
+            "unit": unit,
+            "city": city,
+            "province": province,
+            "postal_code": postal_code,
+            "frontage": frontage,
+            "side_of_street": side_of_street,
+            "municipality": municipality,
+            "depth": depth,
+            "legal_description": legal_description,
+            "buyer_1_name": buyer_1_name,
+            "buyer_2_name": buyer_2_name,
+            "seller_1_name": seller_1_name,
+            "seller_2_name": seller_2_name,
+            "purchase_price": purchase_price,
+            "purchase_price_words": purchase_price_words,
+            "deposit_words": deposit_words,
+            "deposit_amount": deposit_amount,
+            "deposit_holder": deposit_holder,
+            "offer_date": offer_date,
+            "irrevocability_date": irrevocability_date,
+            "irrevocability_time": irrevocability_time,
+            "completion_date": completion_date,
+            "requisition_date": requisition_date,
+            "chattels_included": chattels_included,
+            "fixtures_excluded": fixtures_excluded,
+            "rental_items": rental_items,
+            "schedules": schedules,
+            "schedule_a_content": schedule_a_content,
+            "present_use": present_use,
+            "hst_treatment": hst_treatment,
+            "buyer_address": buyer_address,
+            "buyer_phone": buyer_phone,
+            "seller_address": seller_address,
+            "seller_phone": seller_phone,
+            "listing_brokerage": listing_brokerage,
+            "listing_brokerage_phone": listing_brokerage_phone,
+            "listing_agent": listing_agent,
+            "coop_brokerage": coop_brokerage,
+            "coop_brokerage_phone": coop_brokerage_phone,
+            "coop_agent": coop_agent,
+        }
+
+        pdf_bytes = fill_purchase_pdf(data)
+        with tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".pdf", delete=False
+        ) as tmp_pdf:
+            tmp_pdf.write(pdf_bytes)
+            pdf_path = tmp_pdf.name
+
+        return {
+            "success": True,
+            "document_pdf_path": pdf_path,
+            "message": "Purchase and sale agreement PDF successfully generated.",
+            "form": "OREA Form 100",
+            "property": f"{unit} {street_number} {street_name}, {city}",
+            "buyer_1_name": buyer_1_name,
+            "seller_1_name": seller_1_name,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate purchase and sale agreement.",
+        }
+
+
+@mcp.tool()
+def fill_mutual_release(
+    buyer_1_name: str,
+    seller_1_name: str,
+    agreement_date: str,
+    street_number: str,
+    street_name: str,
+    city: str,
+    deposit_amount: str,
+    buyer_2_name: str = "",
+    seller_2_name: str = "",
+    listing_brokerage: str = "",
+    coop_brokerage: str = "",
+    unit: str = "",
+    province: str = "Ontario",
+    postal_code: str = "",
+    deposit_words: str = "",
+    payable_to: str = "",
+    payable_to_line2: str = "",
+    irrevocability_party: str = "",
+    irrevocability_time: str = "",
+    irrevocability_date: str = "",
+    confirmation_date: str = "",
+    confirmation_time: str = "",
+) -> dict:
+    """
+    Fill OREA Mutual Release (Form 122)
+    and return a path to the filled PDF.
+    """
+    try:
+        data = {
+            "buyer_1_name": buyer_1_name,
+            "buyer_2_name": buyer_2_name,
+            "seller_1_name": seller_1_name,
+            "seller_2_name": seller_2_name,
+            "listing_brokerage": listing_brokerage,
+            "coop_brokerage": coop_brokerage,
+            "agreement_date": agreement_date,
+            "street_number": street_number,
+            "street_name": street_name,
+            "unit": unit,
+            "city": city,
+            "province": province,
+            "postal_code": postal_code,
+            "deposit_words": deposit_words,
+            "deposit_amount": deposit_amount,
+            "payable_to": payable_to,
+            "payable_to_line2": payable_to_line2,
+            "irrevocability_party": irrevocability_party,
+            "irrevocability_time": irrevocability_time,
+            "irrevocability_date": irrevocability_date,
+            "confirmation_date": confirmation_date,
+            "confirmation_time": confirmation_time,
+        }
+
+        pdf_bytes = fill_mutual_release_pdf(data)
+        with tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".pdf", delete=False
+        ) as tmp_pdf:
+            tmp_pdf.write(pdf_bytes)
+            pdf_path = tmp_pdf.name
+
+        return {
+            "success": True,
+            "document_pdf_path": pdf_path,
+            "message": "Mutual release PDF successfully generated.",
+            "form": "OREA Form 122",
+            "property": f"{unit} {street_number} {street_name}, {city}",
+            "buyer_1_name": buyer_1_name,
+            "seller_1_name": seller_1_name,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate mutual release.",
+        }
+
+
+@mcp.tool()
+def fill_waiver(
+    buyer_1_name: str,
+    seller_1_name: str,
+    street_number: str,
+    street_name: str,
+    city: str,
+    agreement_date: str,
+    conditions_waived: str,
+    dated_at_city: str,
+    dated_date: str,
+    buyer_2_name: str = "",
+    seller_2_name: str = "",
+    unit: str = "",
+    province: str = "Ontario",
+    postal_code: str = "",
+    dated_time: str = "",
+    witness_1_name: str = "",
+    witness_2_name: str = "",
+    signer_1_name: str = "",
+    signer_2_name: str = "",
+    receipt_time: str = "",
+    receipt_date: str = "",
+    receipt_acknowledged_by: str = "",
+) -> dict:
+    """
+    Fill OREA Waiver (Form 123)
+    and return a path to the filled PDF.
+    """
+    try:
+        data = {
+            "buyer_1_name": buyer_1_name,
+            "buyer_2_name": buyer_2_name,
+            "seller_1_name": seller_1_name,
+            "seller_2_name": seller_2_name,
+            "street_number": street_number,
+            "street_name": street_name,
+            "unit": unit,
+            "city": city,
+            "province": province,
+            "postal_code": postal_code,
+            "agreement_date": agreement_date,
+            "conditions_waived": conditions_waived,
+            "dated_at_city": dated_at_city,
+            "dated_time": dated_time,
+            "dated_date": dated_date,
+            "witness_1_name": witness_1_name,
+            "witness_2_name": witness_2_name,
+            "signer_1_name": signer_1_name,
+            "signer_2_name": signer_2_name,
+            "receipt_time": receipt_time,
+            "receipt_date": receipt_date,
+            "receipt_acknowledged_by": receipt_acknowledged_by,
+        }
+
+        pdf_bytes = fill_waiver_pdf(data)
+        with tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".pdf", delete=False
+        ) as tmp_pdf:
+            tmp_pdf.write(pdf_bytes)
+            pdf_path = tmp_pdf.name
+
+        return {
+            "success": True,
+            "document_pdf_path": pdf_path,
+            "message": "Waiver PDF successfully generated.",
+            "form": "OREA Form 123",
+            "property": f"{unit} {street_number} {street_name}, {city}",
+            "buyer_1_name": buyer_1_name,
+            "seller_1_name": seller_1_name,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate waiver.",
+        }
+
+
+@mcp.tool()
+def fill_notice_fulfillment(
+    buyer_1_name: str,
+    seller_1_name: str,
+    street_number: str,
+    street_name: str,
+    city: str,
+    agreement_date: str,
+    conditions_fulfilled: str,
+    dated_at_city: str,
+    dated_date: str,
+    buyer_2_name: str = "",
+    seller_2_name: str = "",
+    unit: str = "",
+    province: str = "Ontario",
+    postal_code: str = "",
+    dated_time: str = "",
+    witness_1_name: str = "",
+    witness_2_name: str = "",
+    signer_1_name: str = "",
+    signer_2_name: str = "",
+    receipt_time: str = "",
+    receipt_date: str = "",
+    receipt_acknowledged_by: str = "",
+) -> dict:
+    """
+    Fill OREA Notice of Fulfillment of Condition(s) (Form 124)
+    and return a path to the filled PDF.
+    """
+    try:
+        data = {
+            "buyer_1_name": buyer_1_name,
+            "buyer_2_name": buyer_2_name,
+            "seller_1_name": seller_1_name,
+            "seller_2_name": seller_2_name,
+            "street_number": street_number,
+            "street_name": street_name,
+            "unit": unit,
+            "city": city,
+            "province": province,
+            "postal_code": postal_code,
+            "agreement_date": agreement_date,
+            "conditions_fulfilled": conditions_fulfilled,
+            "dated_at_city": dated_at_city,
+            "dated_time": dated_time,
+            "dated_date": dated_date,
+            "witness_1_name": witness_1_name,
+            "witness_2_name": witness_2_name,
+            "signer_1_name": signer_1_name,
+            "signer_2_name": signer_2_name,
+            "receipt_time": receipt_time,
+            "receipt_date": receipt_date,
+            "receipt_acknowledged_by": receipt_acknowledged_by,
+        }
+
+        pdf_bytes = fill_notice_fulfillment_pdf(data)
+        with tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".pdf", delete=False
+        ) as tmp_pdf:
+            tmp_pdf.write(pdf_bytes)
+            pdf_path = tmp_pdf.name
+
+        return {
+            "success": True,
+            "document_pdf_path": pdf_path,
+            "message": "Notice of fulfillment PDF successfully generated.",
+            "form": "OREA Form 124",
+            "property": f"{unit} {street_number} {street_name}, {city}",
+            "buyer_1_name": buyer_1_name,
+            "seller_1_name": seller_1_name,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate notice of fulfillment.",
+        }
+
+
+@mcp.tool()
+def fill_listing_agreement(
+    listing_brokerage: str,
+    seller_1_name: str,
+    street_number: str,
+    street_name: str,
+    city: str,
+    listing_start_date: str,
+    listing_end_date: str,
+    listing_price: str,
+    listing_commission: str,
+    listing_brokerage_phone: str = "",
+    listing_brokerage_address: str = "",
+    listing_brokerage_city: str = "",
+    listing_brokerage_province: str = "",
+    listing_brokerage_postal_code: str = "",
+    seller_2_name: str = "",
+    unit: str = "",
+    province: str = "ON",
+    postal_code: str = "",
+    commencement_time: str = "",
+    listing_price_words: str = "",
+    schedules: str = "A",
+    listing_commission_words: str = "",
+    coop_commission: str = "",
+    holdover_days: str = "",
+    listing_agent_name: str = "",
+    seller_1_phone: str = "",
+    seller_2_phone: str = "",
+    acknowledgement_date: str = "",
+    schedule_a_content: str = "",
+) -> dict:
+    """
+    Fill OREA Listing Agreement (Form 200)
+    and return a path to the filled PDF.
+    """
+    try:
+        data = {
+            "listing_brokerage": listing_brokerage,
+            "listing_brokerage_phone": listing_brokerage_phone,
+            "listing_brokerage_address": listing_brokerage_address,
+            "listing_brokerage_city": listing_brokerage_city,
+            "listing_brokerage_province": listing_brokerage_province,
+            "listing_brokerage_postal_code": listing_brokerage_postal_code,
+            "seller_1_name": seller_1_name,
+            "seller_2_name": seller_2_name,
+            "street_number": street_number,
+            "street_name": street_name,
+            "unit": unit,
+            "city": city,
+            "province": province,
+            "postal_code": postal_code,
+            "commencement_time": commencement_time,
+            "listing_start_date": listing_start_date,
+            "listing_end_date": listing_end_date,
+            "listing_price": listing_price,
+            "listing_price_words": listing_price_words,
+            "schedules": schedules,
+            "listing_commission": listing_commission,
+            "listing_commission_words": listing_commission_words,
+            "coop_commission": coop_commission,
+            "holdover_days": holdover_days,
+            "listing_agent_name": listing_agent_name,
+            "seller_1_phone": seller_1_phone,
+            "seller_2_phone": seller_2_phone,
+            "acknowledgement_date": acknowledgement_date,
+            "schedule_a_content": schedule_a_content,
+        }
+
+        pdf_bytes = fill_listing_agreement_pdf(data)
+        with tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".pdf", delete=False
+        ) as tmp_pdf:
+            tmp_pdf.write(pdf_bytes)
+            pdf_path = tmp_pdf.name
+
+        return {
+            "success": True,
+            "document_pdf_path": pdf_path,
+            "message": "Listing agreement PDF successfully generated.",
+            "form": "OREA Form 200",
+            "property": f"{unit} {street_number} {street_name}, {city}",
+            "seller_1_name": seller_1_name,
+            "listing_brokerage": listing_brokerage,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate listing agreement.",
+        }
+
+
+@mcp.tool()
+def fill_buyer_representation(
+    brokerage_name: str,
+    buyer_1_name: str,
+    start_date: str,
+    expiry_date: str,
+    property_type: str,
+    geographic_location: str,
+    brokerage_address: str = "",
+    brokerage_city: str = "",
+    brokerage_province: str = "ON",
+    brokerage_postal_code: str = "",
+    brokerage_phone: str = "",
+    brokerage_fax: str = "",
+    buyer_2_name: str = "",
+    buyer_street_number: str = "",
+    buyer_street_name: str = "",
+    buyer_city: str = "",
+    buyer_postal_code: str = "",
+    commencement_time: str = "",
+    property_type_2: str = "",
+    geographic_location_2: str = "",
+    schedules: str = "A",
+    commission_percent: str = "",
+    commission_words: str = "",
+    lease_commission: str = "",
+    holdover_days: str = "",
+    agent_name: str = "",
+    buyer_1_phone: str = "",
+    buyer_2_phone: str = "",
+    acknowledgement_date: str = "",
+    schedule_a_content: str = "",
+) -> dict:
+    """
+    Fill OREA Buyer Representation Agreement (Form 300)
+    and return a path to the filled PDF.
+    """
+    try:
+        data = {
+            "brokerage_name": brokerage_name,
+            "brokerage_address": brokerage_address,
+            "brokerage_city": brokerage_city,
+            "brokerage_province": brokerage_province,
+            "brokerage_postal_code": brokerage_postal_code,
+            "brokerage_phone": brokerage_phone,
+            "brokerage_fax": brokerage_fax,
+            "buyer_1_name": buyer_1_name,
+            "buyer_2_name": buyer_2_name,
+            "buyer_street_number": buyer_street_number,
+            "buyer_street_name": buyer_street_name,
+            "buyer_city": buyer_city,
+            "buyer_postal_code": buyer_postal_code,
+            "commencement_time": commencement_time,
+            "start_date": start_date,
+            "expiry_date": expiry_date,
+            "property_type": property_type,
+            "property_type_2": property_type_2,
+            "geographic_location": geographic_location,
+            "geographic_location_2": geographic_location_2,
+            "schedules": schedules,
+            "commission_percent": commission_percent,
+            "commission_words": commission_words,
+            "lease_commission": lease_commission,
+            "holdover_days": holdover_days,
+            "agent_name": agent_name,
+            "buyer_1_phone": buyer_1_phone,
+            "buyer_2_phone": buyer_2_phone,
+            "acknowledgement_date": acknowledgement_date,
+            "schedule_a_content": schedule_a_content,
+        }
+
+        pdf_bytes = fill_buyer_representation_pdf(data)
+        with tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".pdf", delete=False
+        ) as tmp_pdf:
+            tmp_pdf.write(pdf_bytes)
+            pdf_path = tmp_pdf.name
+
+        return {
+            "success": True,
+            "document_pdf_path": pdf_path,
+            "message": "Buyer representation agreement PDF successfully generated.",
+            "form": "OREA Form 300",
+            "buyer_1_name": buyer_1_name,
+            "brokerage_name": brokerage_name,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate buyer representation agreement.",
+        }
+
+
+@mcp.tool()
+def fill_confirmation_cooperation(
+    buyer_1_name: str,
+    seller_1_name: str,
+    street_number: str,
+    street_name: str,
+    city: str,
+    seller_brokerage_name: str,
+    seller_agent_name: str,
+    buyer_2_name: str = "",
+    seller_2_name: str = "",
+    unit: str = "",
+    province: str = "ON",
+    postal_code: str = "",
+    seller_representation: str = "",
+    coop_representation: str = "",
+    coop_commission_type: str = "",
+    coop_commission_mls_amount: str = "",
+    coop_commission_other: str = "",
+    coop_additional_comments: str = "",
+    seller_additional_comments: str = "",
+    seller_additional_comments_2: str = "",
+    seller_brokerage_address: str = "",
+    seller_brokerage_phone: str = "",
+    seller_brokerage_fax: str = "",
+    coop_brokerage_name: str = "",
+    coop_brokerage_address: str = "",
+    coop_brokerage_phone: str = "",
+    coop_brokerage_fax: str = "",
+    coop_agent_name: str = "",
+) -> dict:
+    """
+    Fill OREA Confirmation of Co-operation and Representation (Form 320)
+    and return a path to the filled PDF.
+    """
+    try:
+        data = {
+            "buyer_1_name": buyer_1_name,
+            "buyer_2_name": buyer_2_name,
+            "seller_1_name": seller_1_name,
+            "seller_2_name": seller_2_name,
+            "street_number": street_number,
+            "street_name": street_name,
+            "unit": unit,
+            "city": city,
+            "province": province,
+            "postal_code": postal_code,
+            "seller_representation": seller_representation,
+            "coop_representation": coop_representation,
+            "coop_commission_type": coop_commission_type,
+            "coop_commission_mls_amount": coop_commission_mls_amount,
+            "coop_commission_other": coop_commission_other,
+            "coop_additional_comments": coop_additional_comments,
+            "seller_additional_comments": seller_additional_comments,
+            "seller_additional_comments_2": seller_additional_comments_2,
+            "seller_brokerage_name": seller_brokerage_name,
+            "seller_brokerage_address": seller_brokerage_address,
+            "seller_brokerage_phone": seller_brokerage_phone,
+            "seller_brokerage_fax": seller_brokerage_fax,
+            "seller_agent_name": seller_agent_name,
+            "coop_brokerage_name": coop_brokerage_name,
+            "coop_brokerage_address": coop_brokerage_address,
+            "coop_brokerage_phone": coop_brokerage_phone,
+            "coop_brokerage_fax": coop_brokerage_fax,
+            "coop_agent_name": coop_agent_name,
+        }
+
+        pdf_bytes = fill_confirmation_cooperation_pdf(data)
+        with tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".pdf", delete=False
+        ) as tmp_pdf:
+            tmp_pdf.write(pdf_bytes)
+            pdf_path = tmp_pdf.name
+
+        return {
+            "success": True,
+            "document_pdf_path": pdf_path,
+            "message": "Confirmation of co-operation PDF successfully generated.",
+            "form": "OREA Form 320",
+            "buyer_1_name": buyer_1_name,
+            "seller_1_name": seller_1_name,
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate confirmation of co-operation.",
+        }
 
 
 @mcp.tool()

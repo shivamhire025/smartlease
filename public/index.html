@@ -140,6 +140,34 @@
       color: var(--text-muted);
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-btn {
+      height: 32px;
+      padding: 0 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .header-btn.primary {
+      background: var(--green);
+      color: white;
+    }
+
+    .header-btn.secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
     .chat-scroll {
       flex: 1;
       overflow-y: auto;
@@ -212,6 +240,18 @@
     .chip:hover {
       border-color: var(--navy);
       color: var(--navy);
+    }
+
+    .forms-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .forms-buttons .chip {
+      white-space: nowrap;
+      margin: 0;
     }
 
     #messages-root {
@@ -606,9 +646,14 @@
           <span class="status-dot" aria-hidden="true"></span>
           <span class="status-text">Live</span>
         </div>
-        <button type="button" id="mcp-btn" onclick="document.getElementById('mcp-modal').style.display='flex'" style="height:32px;padding:0 12px;background:var(--green);color:white;border:none;border-radius:8px;font-size:12px;font-weight:500;font-family:inherit;cursor:pointer;">
-          Connect to Claude
-        </button>
+        <div class="header-actions">
+          <button type="button" id="new-chat-btn" class="header-btn secondary">
+            New Chat
+          </button>
+          <button type="button" id="mcp-btn" class="header-btn primary" onclick="document.getElementById('mcp-modal').style.display='flex'">
+            Connect to Claude
+          </button>
+        </div>
       </header>
 
       <div class="chat-scroll" id="chat-scroll">
@@ -682,8 +727,8 @@
   </div>
 
   <script>
-    // Change this to your Railway URL when deployed
-    const API_URL = 'https://web-production-3cb6e.up.railway.app';
+    // Use same-origin API so localhost hits local backend.
+    const API_URL = window.location.origin;
 
     const messages = [];
 
@@ -694,6 +739,7 @@
     const typingSlowHint = document.getElementById("typing-slow-hint");
     const messageInput = document.getElementById("message-input");
     const sendBtn = document.getElementById("send-btn");
+    const newChatBtn = document.getElementById("new-chat-btn");
     const emptyPreview = document.getElementById("empty-preview");
     const documentContainer = document.getElementById("document-container");
     const printBtn = document.getElementById("print-btn");
@@ -765,6 +811,23 @@
       welcomeState.classList.add("hidden");
     }
 
+    function startNewChat() {
+      messages.length = 0;
+      hideTyping();
+      messagesRoot.innerHTML = "";
+      welcomeState.classList.remove("hidden");
+      messageInput.value = "";
+      autoResizeTextarea();
+      updateSendState();
+
+      documentContainer.innerHTML = "";
+      documentContainer.classList.remove("visible");
+      emptyPreview.classList.remove("hidden");
+      printBtn.classList.remove("visible");
+      previewBody.scrollTop = 0;
+      messageInput.focus();
+    }
+
     function appendUserMessage(text) {
       const row = document.createElement("div");
       row.className = "msg-row user";
@@ -789,6 +852,59 @@
       row.appendChild(avatar);
       row.appendChild(bubble);
       messagesRoot.appendChild(row);
+      return bubble;
+    }
+
+    function appendSupportedFormsButtons(targetBubble) {
+      if (!targetBubble) return;
+      const wrap = document.createElement("div");
+      wrap.className = "forms-buttons";
+
+      const forms = [
+        { label: "Form 2229E — Lease", prompt: "I want to create an Ontario Standard Lease Agreement (Form 2229E)." },
+        { label: "Form 100 — Purchase & Sale", prompt: "I want to draft an Agreement of Purchase and Sale (Form 100)." },
+        { label: "Form 122 — Mutual Release", prompt: "I need a Mutual Release (Form 122) for an APS." },
+        { label: "Form 123 — Waiver", prompt: "I need a Waiver (Form 123) for APS conditions." },
+        { label: "Form 124 — Notice of Fulfillment", prompt: "I need a Notice of Fulfillment of Condition(s) (Form 124) for an APS." },
+        { label: "Form 200 — Listing Agreement", prompt: "I need a Listing Agreement (Form 200) for selling a property." },
+        { label: "Form 300 — Buyer Representation", prompt: "I need a Buyer Representation Agreement (Form 300)." },
+        { label: "Form 320 — Co-operation & Representation", prompt: "I need a Confirmation of Co-operation and Representation (Form 320)." }
+      ];
+
+      forms.forEach(function (form) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chip";
+        btn.textContent = form.label;
+        btn.addEventListener("click", function () {
+          messageInput.value = form.prompt;
+          autoResizeTextarea();
+          updateSendState();
+          sendMessage();
+        });
+        wrap.appendChild(btn);
+      });
+
+      targetBubble.appendChild(wrap);
+    }
+
+    function isSupportedFormsQuestion(text) {
+      const v = String(text || "").trim().toLowerCase();
+      return (
+        v.includes("what forms do you support") ||
+        v.includes("which forms do you support") ||
+        v.includes("supported forms") ||
+        v === "forms"
+      );
+    }
+
+    function shouldRenderFormsButtonsFromReply(text) {
+      const v = String(text || "").toLowerCase();
+      return (
+        v.includes("supported forms") &&
+        v.includes("form 2229e") &&
+        v.includes("form 100")
+      );
     }
 
     function showTyping() {
@@ -832,6 +948,16 @@
       messages.push({ role: "user", content: text });
       scrollChatToBottom();
 
+      if (isSupportedFormsQuestion(text)) {
+        const quickMsg = "I currently support these Ontario real estate forms:";
+        const bubble = appendAssistantMessage(quickMsg);
+        appendSupportedFormsButtons(bubble);
+        messages.push({ role: "assistant", content: quickMsg });
+        scrollChatToBottom();
+        updateSendState();
+        return;
+      }
+
       showTyping();
 
       try {
@@ -859,7 +985,11 @@
 
         const response = await res.json();
         const assistantText = response.message || "";
-        appendAssistantMessage(assistantText);
+        const bubble = appendAssistantMessage(assistantText);
+        if (shouldRenderFormsButtonsFromReply(assistantText)) {
+          bubble.innerHTML = "I currently support these Ontario real estate forms:";
+          appendSupportedFormsButtons(bubble);
+        }
         messages.push({ role: "assistant", content: assistantText });
         scrollChatToBottom();
 
@@ -922,6 +1052,7 @@
     });
 
     sendBtn.addEventListener("click", sendMessage);
+    newChatBtn.addEventListener("click", startNewChat);
 
     document.querySelectorAll("[data-chip]").forEach(function (btn) {
       btn.addEventListener("click", function () {

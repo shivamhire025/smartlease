@@ -8,6 +8,13 @@ import os
 import base64
 from dotenv import load_dotenv
 from forms.lease import fill_lease, fill_lease_pdf
+from forms.purchase import fill_purchase_pdf
+from forms.mutual_release import fill_mutual_release_pdf
+from forms.waiver import fill_waiver_pdf
+from forms.notice_fulfillment import fill_notice_fulfillment_pdf
+from forms.listing_agreement import fill_listing_agreement_pdf
+from forms.buyer_representation import fill_buyer_representation_pdf
+from forms.confirmation_cooperation import fill_confirmation_cooperation_pdf
 
 load_dotenv()
 
@@ -37,13 +44,25 @@ official Ontario real estate documents accurately and quickly.
 You currently support:
 - Ontario Standard Lease Agreement (Form 2229E) — for 
   landlords renting residential properties
-- Agreement of Purchase and Sale (Form 100) — coming soon
+- Agreement of Purchase and Sale (Form 100)
+- Mutual Release (Form 122)
+- Waiver (Form 123)
+- Notice of Fulfillment of Condition(s) (Form 124)
+- Listing Agreement (Form 200)
+- Buyer Representation Agreement (Form 300)
+- Confirmation of Co-operation and Representation (Form 320)
 
 BEHAVIOR RULES:
 1. When a user describes their need, identify which form 
    they require based on context:
    - Leasing/renting → Form 2229E (Standard Lease)
    - Buying/selling → Form 100 (Purchase and Sale)
+   - Releasing/cancelling APS → Form 122 (Mutual Release)
+   - Waiving conditions in APS → Form 123 (Waiver)
+   - Confirming conditions are fulfilled in APS → Form 124 (Notice of Fulfillment)
+   - Listing a property for sale with brokerage → Form 200 (Listing Agreement)
+   - Appointing buyer brokerage representation → Form 300 (Buyer Representation)
+   - Confirming cooperation/representation in a trade → Form 320 (Confirmation of Co-operation)
 
 2. Collect information conversationally — ask ONE question 
    at a time. Never present a list of questions all at once.
@@ -235,7 +254,340 @@ tools = [
                 "payment_method", "tenants"
             ]
         }
-    }
+    },
+    {
+        "name": "fill_purchase_and_sale",
+        "description": "Fill OREA Form 100 Agreement of Purchase and Sale with collected data and generate a filled PDF.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "street_number": {"type": "string"},
+                "street_name": {"type": "string"},
+                "unit": {"type": "string"},
+                "city": {"type": "string"},
+                "province": {"type": "string"},
+                "postal_code": {"type": "string"},
+                "frontage": {"type": "string"},
+                "side_of_street": {"type": "string"},
+                "municipality": {"type": "string"},
+                "depth": {"type": "string"},
+                "legal_description": {"type": "string"},
+                "buyer_1_name": {"type": "string"},
+                "buyer_2_name": {"type": "string"},
+                "seller_1_name": {"type": "string"},
+                "seller_2_name": {"type": "string"},
+                "purchase_price": {"type": "string"},
+                "purchase_price_words": {"type": "string"},
+                "deposit_words": {"type": "string"},
+                "deposit_amount": {"type": "string"},
+                "deposit_holder": {"type": "string"},
+                "offer_date": {"type": "string"},
+                "irrevocability_date": {"type": "string"},
+                "irrevocability_time": {"type": "string"},
+                "completion_date": {"type": "string"},
+                "requisition_date": {"type": "string"},
+                "chattels_included": {"type": "string"},
+                "fixtures_excluded": {"type": "string"},
+                "rental_items": {"type": "string"},
+                "schedules": {"type": "string"},
+                "schedule_a_content": {"type": "string"},
+                "present_use": {"type": "string"},
+                "hst_treatment": {"type": "string"},
+                "buyer_address": {"type": "string"},
+                "buyer_phone": {"type": "string"},
+                "seller_address": {"type": "string"},
+                "seller_phone": {"type": "string"},
+                "listing_brokerage": {"type": "string"},
+                "listing_brokerage_phone": {"type": "string"},
+                "listing_agent": {"type": "string"},
+                "coop_brokerage": {"type": "string"},
+                "coop_brokerage_phone": {"type": "string"},
+                "coop_agent": {"type": "string"}
+            },
+            "required": [
+                "street_number", "street_name", "unit", "city",
+                "postal_code", "frontage", "side_of_street",
+                "municipality", "depth", "legal_description",
+                "buyer_1_name", "buyer_2_name", "seller_1_name",
+                "seller_2_name", "purchase_price", "purchase_price_words",
+                "deposit_words", "deposit_amount", "deposit_holder",
+                "offer_date", "irrevocability_date", "irrevocability_time",
+                "completion_date", "requisition_date", "chattels_included",
+                "fixtures_excluded", "rental_items", "schedule_a_content",
+                "present_use", "hst_treatment", "buyer_address",
+                "buyer_phone", "seller_address", "seller_phone",
+                "listing_brokerage", "listing_brokerage_phone",
+                "listing_agent", "coop_brokerage",
+                "coop_brokerage_phone", "coop_agent"
+            ]
+        }
+    },
+    {
+        "name": "fill_mutual_release",
+        "description": "Fill OREA Form 122 Mutual Release with collected data and generate a filled PDF.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "buyer_1_name": {"type": "string"},
+                "buyer_2_name": {"type": "string"},
+                "seller_1_name": {"type": "string"},
+                "seller_2_name": {"type": "string"},
+                "listing_brokerage": {"type": "string"},
+                "coop_brokerage": {"type": "string"},
+                "agreement_date": {"type": "string"},
+                "street_number": {"type": "string"},
+                "street_name": {"type": "string"},
+                "unit": {"type": "string"},
+                "city": {"type": "string"},
+                "province": {"type": "string"},
+                "postal_code": {"type": "string"},
+                "deposit_words": {"type": "string"},
+                "deposit_amount": {"type": "string"},
+                "payable_to": {"type": "string"},
+                "payable_to_line2": {"type": "string"},
+                "irrevocability_party": {"type": "string"},
+                "irrevocability_time": {"type": "string"},
+                "irrevocability_date": {"type": "string"},
+                "confirmation_date": {"type": "string"},
+                "confirmation_time": {"type": "string"}
+            },
+            "required": [
+                "buyer_1_name",
+                "seller_1_name",
+                "agreement_date",
+                "street_number",
+                "street_name",
+                "city",
+                "deposit_amount"
+            ]
+        }
+    },
+    {
+        "name": "fill_waiver",
+        "description": "Fill OREA Form 123 Waiver with collected data and generate a filled PDF.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "buyer_1_name": {"type": "string"},
+                "buyer_2_name": {"type": "string"},
+                "seller_1_name": {"type": "string"},
+                "seller_2_name": {"type": "string"},
+                "street_number": {"type": "string"},
+                "street_name": {"type": "string"},
+                "unit": {"type": "string"},
+                "city": {"type": "string"},
+                "province": {"type": "string"},
+                "postal_code": {"type": "string"},
+                "agreement_date": {"type": "string"},
+                "conditions_waived": {"type": "string"},
+                "dated_at_city": {"type": "string"},
+                "dated_time": {"type": "string"},
+                "dated_date": {"type": "string"},
+                "witness_1_name": {"type": "string"},
+                "witness_2_name": {"type": "string"},
+                "signer_1_name": {"type": "string"},
+                "signer_2_name": {"type": "string"},
+                "receipt_time": {"type": "string"},
+                "receipt_date": {"type": "string"},
+                "receipt_acknowledged_by": {"type": "string"}
+            },
+            "required": [
+                "buyer_1_name",
+                "seller_1_name",
+                "street_number",
+                "street_name",
+                "city",
+                "agreement_date",
+                "conditions_waived",
+                "dated_at_city",
+                "dated_date"
+            ]
+        }
+    },
+    {
+        "name": "fill_notice_fulfillment",
+        "description": "Fill OREA Form 124 Notice of Fulfillment of Condition(s) with collected data and generate a filled PDF.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "buyer_1_name": {"type": "string"},
+                "buyer_2_name": {"type": "string"},
+                "seller_1_name": {"type": "string"},
+                "seller_2_name": {"type": "string"},
+                "street_number": {"type": "string"},
+                "street_name": {"type": "string"},
+                "unit": {"type": "string"},
+                "city": {"type": "string"},
+                "province": {"type": "string"},
+                "postal_code": {"type": "string"},
+                "agreement_date": {"type": "string"},
+                "conditions_fulfilled": {"type": "string"},
+                "dated_at_city": {"type": "string"},
+                "dated_time": {"type": "string"},
+                "dated_date": {"type": "string"},
+                "witness_1_name": {"type": "string"},
+                "witness_2_name": {"type": "string"},
+                "signer_1_name": {"type": "string"},
+                "signer_2_name": {"type": "string"},
+                "receipt_time": {"type": "string"},
+                "receipt_date": {"type": "string"},
+                "receipt_acknowledged_by": {"type": "string"}
+            },
+            "required": [
+                "buyer_1_name",
+                "seller_1_name",
+                "street_number",
+                "street_name",
+                "city",
+                "agreement_date",
+                "conditions_fulfilled",
+                "dated_at_city",
+                "dated_date"
+            ]
+        }
+    },
+    {
+        "name": "fill_listing_agreement",
+        "description": "Fill OREA Form 200 Listing Agreement with collected data and generate a filled PDF.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "listing_brokerage": {"type": "string"},
+                "listing_brokerage_phone": {"type": "string"},
+                "listing_brokerage_address": {"type": "string"},
+                "listing_brokerage_city": {"type": "string"},
+                "listing_brokerage_province": {"type": "string"},
+                "listing_brokerage_postal_code": {"type": "string"},
+                "seller_1_name": {"type": "string"},
+                "seller_2_name": {"type": "string"},
+                "street_number": {"type": "string"},
+                "street_name": {"type": "string"},
+                "unit": {"type": "string"},
+                "city": {"type": "string"},
+                "province": {"type": "string"},
+                "postal_code": {"type": "string"},
+                "commencement_time": {"type": "string"},
+                "listing_start_date": {"type": "string"},
+                "listing_end_date": {"type": "string"},
+                "listing_price": {"type": "string"},
+                "listing_price_words": {"type": "string"},
+                "schedules": {"type": "string"},
+                "listing_commission": {"type": "string"},
+                "listing_commission_words": {"type": "string"},
+                "coop_commission": {"type": "string"},
+                "holdover_days": {"type": "string"},
+                "listing_agent_name": {"type": "string"},
+                "seller_1_phone": {"type": "string"},
+                "seller_2_phone": {"type": "string"},
+                "acknowledgement_date": {"type": "string"},
+                "schedule_a_content": {"type": "string"}
+            },
+            "required": [
+                "listing_brokerage",
+                "seller_1_name",
+                "street_number",
+                "street_name",
+                "city",
+                "listing_start_date",
+                "listing_end_date",
+                "listing_price",
+                "listing_commission"
+            ]
+        }
+    },
+    {
+        "name": "fill_buyer_representation",
+        "description": "Fill OREA Form 300 Buyer Representation Agreement with collected data and generate a filled PDF.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "brokerage_name": {"type": "string"},
+                "brokerage_address": {"type": "string"},
+                "brokerage_city": {"type": "string"},
+                "brokerage_province": {"type": "string"},
+                "brokerage_postal_code": {"type": "string"},
+                "brokerage_phone": {"type": "string"},
+                "brokerage_fax": {"type": "string"},
+                "buyer_1_name": {"type": "string"},
+                "buyer_2_name": {"type": "string"},
+                "buyer_street_number": {"type": "string"},
+                "buyer_street_name": {"type": "string"},
+                "buyer_city": {"type": "string"},
+                "buyer_postal_code": {"type": "string"},
+                "commencement_time": {"type": "string"},
+                "start_date": {"type": "string"},
+                "expiry_date": {"type": "string"},
+                "property_type": {"type": "string"},
+                "property_type_2": {"type": "string"},
+                "geographic_location": {"type": "string"},
+                "geographic_location_2": {"type": "string"},
+                "schedules": {"type": "string"},
+                "commission_percent": {"type": "string"},
+                "commission_words": {"type": "string"},
+                "lease_commission": {"type": "string"},
+                "holdover_days": {"type": "string"},
+                "agent_name": {"type": "string"},
+                "buyer_1_phone": {"type": "string"},
+                "buyer_2_phone": {"type": "string"},
+                "acknowledgement_date": {"type": "string"},
+                "schedule_a_content": {"type": "string"}
+            },
+            "required": [
+                "brokerage_name",
+                "buyer_1_name",
+                "start_date",
+                "expiry_date",
+                "property_type",
+                "geographic_location"
+            ]
+        }
+    },
+    {
+        "name": "fill_confirmation_cooperation",
+        "description": "Fill OREA Form 320 Confirmation of Co-operation and Representation with collected data and generate a filled PDF.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "buyer_1_name": {"type": "string"},
+                "buyer_2_name": {"type": "string"},
+                "seller_1_name": {"type": "string"},
+                "seller_2_name": {"type": "string"},
+                "street_number": {"type": "string"},
+                "street_name": {"type": "string"},
+                "unit": {"type": "string"},
+                "city": {"type": "string"},
+                "province": {"type": "string"},
+                "postal_code": {"type": "string"},
+                "seller_representation": {"type": "string"},
+                "coop_representation": {"type": "string"},
+                "coop_commission_type": {"type": "string"},
+                "coop_commission_mls_amount": {"type": "string"},
+                "coop_commission_other": {"type": "string"},
+                "coop_additional_comments": {"type": "string"},
+                "seller_additional_comments": {"type": "string"},
+                "seller_additional_comments_2": {"type": "string"},
+                "seller_brokerage_name": {"type": "string"},
+                "seller_brokerage_address": {"type": "string"},
+                "seller_brokerage_phone": {"type": "string"},
+                "seller_brokerage_fax": {"type": "string"},
+                "seller_agent_name": {"type": "string"},
+                "coop_brokerage_name": {"type": "string"},
+                "coop_brokerage_address": {"type": "string"},
+                "coop_brokerage_phone": {"type": "string"},
+                "coop_brokerage_fax": {"type": "string"},
+                "coop_agent_name": {"type": "string"}
+            },
+            "required": [
+                "buyer_1_name",
+                "seller_1_name",
+                "street_number",
+                "street_name",
+                "city",
+                "seller_brokerage_name",
+                "seller_agent_name"
+            ]
+        }
+    },
 ]
 
 
@@ -326,6 +678,153 @@ async def chat(request: ChatRequest):
                     filled_document = fill_lease(tool_input)
                     tool_result_content = "PDF generation failed; HTML lease generated."
                 
+                tool_result_blocks.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": tool_result_content,
+                    }
+                )
+            elif block.name == "fill_purchase_and_sale":
+                tool_input = dict(block.input)
+                try:
+                    pdf_bytes = fill_purchase_pdf(tool_input)
+                    filled_document_pdf = base64.b64encode(pdf_bytes).decode("ascii")
+                    tool_result_content = (
+                        "OREA Form 100 PDF generated successfully."
+                    )
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    print(f"Purchase PDF fill error: {e}")
+                    tool_result_content = "Purchase PDF generation failed."
+
+                tool_result_blocks.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": tool_result_content,
+                    }
+                )
+            elif block.name == "fill_mutual_release":
+                tool_input = dict(block.input)
+                try:
+                    pdf_bytes = fill_mutual_release_pdf(tool_input)
+                    filled_document_pdf = base64.b64encode(pdf_bytes).decode("ascii")
+                    tool_result_content = (
+                        "OREA Form 122 Mutual Release PDF generated successfully."
+                    )
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    print(f"Mutual release PDF fill error: {e}")
+                    tool_result_content = "Mutual release PDF generation failed."
+
+                tool_result_blocks.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": tool_result_content,
+                    }
+                )
+            elif block.name == "fill_waiver":
+                tool_input = dict(block.input)
+                try:
+                    pdf_bytes = fill_waiver_pdf(tool_input)
+                    filled_document_pdf = base64.b64encode(pdf_bytes).decode("ascii")
+                    tool_result_content = (
+                        "OREA Form 123 Waiver PDF generated successfully."
+                    )
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    print(f"Waiver PDF fill error: {e}")
+                    tool_result_content = "Waiver PDF generation failed."
+
+                tool_result_blocks.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": tool_result_content,
+                    }
+                )
+            elif block.name == "fill_notice_fulfillment":
+                tool_input = dict(block.input)
+                try:
+                    pdf_bytes = fill_notice_fulfillment_pdf(tool_input)
+                    filled_document_pdf = base64.b64encode(pdf_bytes).decode("ascii")
+                    tool_result_content = (
+                        "OREA Form 124 Notice of Fulfillment PDF generated successfully."
+                    )
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    print(f"Notice of fulfillment PDF fill error: {e}")
+                    tool_result_content = "Notice of fulfillment PDF generation failed."
+
+                tool_result_blocks.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": tool_result_content,
+                    }
+                )
+            elif block.name == "fill_listing_agreement":
+                tool_input = dict(block.input)
+                try:
+                    pdf_bytes = fill_listing_agreement_pdf(tool_input)
+                    filled_document_pdf = base64.b64encode(pdf_bytes).decode("ascii")
+                    tool_result_content = (
+                        "OREA Form 200 Listing Agreement PDF generated successfully."
+                    )
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    print(f"Listing agreement PDF fill error: {e}")
+                    tool_result_content = "Listing agreement PDF generation failed."
+
+                tool_result_blocks.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": tool_result_content,
+                    }
+                )
+            elif block.name == "fill_buyer_representation":
+                tool_input = dict(block.input)
+                try:
+                    pdf_bytes = fill_buyer_representation_pdf(tool_input)
+                    filled_document_pdf = base64.b64encode(pdf_bytes).decode("ascii")
+                    tool_result_content = (
+                        "OREA Form 300 Buyer Representation Agreement PDF generated successfully."
+                    )
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    print(f"Buyer representation PDF fill error: {e}")
+                    tool_result_content = "Buyer representation PDF generation failed."
+
+                tool_result_blocks.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": tool_result_content,
+                    }
+                )
+            elif block.name == "fill_confirmation_cooperation":
+                tool_input = dict(block.input)
+                try:
+                    pdf_bytes = fill_confirmation_cooperation_pdf(tool_input)
+                    filled_document_pdf = base64.b64encode(pdf_bytes).decode("ascii")
+                    tool_result_content = (
+                        "OREA Form 320 Confirmation of Co-operation PDF generated successfully."
+                    )
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    print(f"Confirmation of co-operation PDF fill error: {e}")
+                    tool_result_content = "Confirmation of co-operation PDF generation failed."
+
                 tool_result_blocks.append(
                     {
                         "type": "tool_result",
