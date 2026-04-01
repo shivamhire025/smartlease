@@ -2,7 +2,7 @@
 
 > Generate legally structured lease and agreement documents in seconds, powered by the Anthropic Claude API.
 
-**[Live Demo]https://web-production-1f5ab.up.railway.app/** · **[GitHub](https://github.com/shivamhire025/smartlease)**
+**[Live Demo](https://web-production-1f5ab.up.railway.app/)** · **[GitHub](https://github.com/shivamhire025/smartlease)**
 
 **Welcome Screen with Claude Connector Button**
 <img width="1470" height="721" alt="Screenshot 2026-03-25 at 2 41 29 PM" src="https://github.com/user-attachments/assets/311e3931-6e0c-4cac-9ac6-120bd60edff4" />
